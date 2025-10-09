@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614561835499",
+    "project_id": "smartpark-bf660",
+    "storage_bucket": "smartpark-bf660.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614561835499:android:2b711177ca531058a9d1ae",
+        "android_client_info": {
+          "package_name": "com.ucb.smartpark"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCjtvH3HBjGZ9krGCy6Ux4cQ8O5bNvwVQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
