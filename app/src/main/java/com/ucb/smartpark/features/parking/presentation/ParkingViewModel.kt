@@ -6,6 +6,7 @@ import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
 import com.ucb.smartpark.features.parking.domain.usecase.ObserveParkingUseCase
 import com.ucb.smartpark.features.parking.domain.usecase.ToggleSlotUseCase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,13 @@ class ParkingViewModel(
     private val toggleSlot: ToggleSlotUseCase
 ) : ViewModel() {
 
+    /** Lotes disponibles en el selector de la UI. */
+    val lots: List<String> = listOf("parking1", "parking2")
+
+    /** Lote seleccionado actualmente. */
+    private val _selectedLot = MutableStateFlow(lots.first())
+    val selectedLot: StateFlow<String> = _selectedLot.asStateFlow()
+
     sealed class UiState {
         object Loading : UiState()
         data class Success(val slots: List<ParkingSlot>) : UiState()
@@ -27,23 +35,34 @@ class ParkingViewModel(
     private val _state = MutableStateFlow<UiState>(UiState.Loading)
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    private var observeJob: Job? = null
+
     init {
-        observe()
+        startObserving(_selectedLot.value)
     }
 
-    private fun observe() {
-        viewModelScope.launch(Dispatchers.IO) {
-            observeParking()
+    /** Cambia el parqueo y vuelve a observar en tiempo real. */
+    fun onLotSelected(lotId: String) {
+        if (lotId == _selectedLot.value) return
+        _selectedLot.value = lotId
+        startObserving(lotId)
+    }
+
+    private fun startObserving(lotId: String) {
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch(Dispatchers.IO) {
+            observeParking(lotId)
                 .onStart { _state.value = UiState.Loading }
                 .catch { e -> _state.value = UiState.Error(e.message ?: "Error") }
                 .collect { list -> _state.value = UiState.Success(list) }
         }
     }
 
-    /** Para modo demo: tocar un slot alterna su estado. */
+    /** Alterna estado del slot en el lote actual. */
     fun onSlotClicked(slot: ParkingSlot) {
         viewModelScope.launch(Dispatchers.IO) {
-            toggleSlot(slot.id, !slot.isOccupied)
+            val lotId = _selectedLot.value
+            toggleSlot(lotId, slot.id, !slot.isOccupied)
         }
     }
 }

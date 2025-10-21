@@ -7,5 +7,6 @@ import kotlinx.coroutines.flow.Flow
 class ObserveParkingUseCase(
     private val repo: IParkingRepository
 ) {
-    operator fun invoke(): Flow<List<ParkingSlot>> = repo.observeSlots()
+    operator fun invoke(lotId: String): Flow<List<ParkingSlot>> =
+        repo.observeSlots(lotId)
 }
