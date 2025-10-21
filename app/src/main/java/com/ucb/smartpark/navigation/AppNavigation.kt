@@ -1,18 +1,22 @@
 package com.ucb.smartpark.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.ucb.smartpark.features.auth.presentation.LoginScreen
 import com.ucb.smartpark.features.parking.presentation.ParkingScreen
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
+fun AppNavigation(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Parking.route   // ← arranca en Parking
+        startDestination = Screen.Login.route,
+        modifier = modifier
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
@@ -23,15 +27,7 @@ fun AppNavigation() {
                 }
             )
         }
-
-        // ← Asegúrate de registrar esta ruta!
-        composable(Screen.Parking.route) {
-            ParkingScreen()
-        }
-
-        // (Opcional) si mantienes Home:
-        composable(Screen.Home.route) {
-            ParkingScreen() // o tu HomeScreen contenedor
-        }
+        composable(Screen.Parking.route) { ParkingScreen() }
+        composable(Screen.Home.route) { ParkingScreen() }
     }
 }

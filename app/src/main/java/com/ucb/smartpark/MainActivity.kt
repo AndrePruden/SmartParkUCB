@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.ucb.smartpark.navigation.AppNavigation
+import com.ucb.smartpark.navigation.MainApp
 import com.ucb.smartpark.ui.theme.SmartParkTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation()
+                    MainApp()   // ⬅️ antes llamabas a AppNavigation()
                 }
             }
         }
