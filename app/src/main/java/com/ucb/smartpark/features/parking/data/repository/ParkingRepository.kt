@@ -9,9 +9,14 @@ class ParkingRepository(
     private val remote: ParkingRemoteDataSource
 ) : IParkingRepository {
 
-    override fun observeSlots(): Flow<List<ParkingSlot>> = remote.observeSlots()
+    override fun observeSlots(lotId: String): Flow<List<ParkingSlot>> =
+        remote.observeSlots(lotId)
 
-    override suspend fun setSlotOccupied(slotId: Int, occupied: Boolean) {
-        remote.setSlotOccupied(slotId, occupied)
+    override suspend fun setSlotOccupied(lotId: String, slotId: Int, occupied: Boolean) {
+        remote.setSlotOccupied(lotId, slotId, occupied)
+    }
+
+    override suspend fun ensureLotInitialized(lotId: String, slotsCount: Int) {
+        TODO("Not yet implemented")
     }
 }
