@@ -44,49 +44,53 @@ fun MainApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // 🔹 Si estamos en login, no mostrar Drawer ni AppBar
-    if (currentRoute == Screen.Login.route) {
-        AppNavigation(navController = navController)
-    } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(modifier = Modifier.width(260.dp)) {
-                    Box(
-                        modifier = Modifier.width(260.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "SmartPark", style = MaterialTheme.typography.titleMedium)
-                    }
+    // 🔹 Lista de rutas que NO deben mostrar la barra superior ni el menú
+    val routesWithoutChrome = listOf(Screen.Splash.route, Screen.Login.route)
+    val showChrome = currentRoute !in routesWithoutChrome
 
-                    items.forEach { item ->
-                        val selected = currentRoute == item.route
-                        NavigationDrawerItem(
-                            icon = {
-                                Icon(
-                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
-                                )
-                            },
-                            label = { Text(item.label) },
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    launchSingleTop = true
-                                    restoreState = true
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        // 🔹 Solo permite abrir el menú si 'showChrome' es verdadero
+        gesturesEnabled = showChrome,
+        drawerContent = {
+            ModalDrawerSheet(modifier = Modifier.width(260.dp)) {
+                Box(
+                    modifier = Modifier.width(260.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "SmartPark", style = MaterialTheme.typography.titleMedium)
+                }
+
+                items.forEach { item ->
+                    val selected = currentRoute == item.route
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label
+                            )
+                        },
+                        label = { Text(item.label) },
+                        selected = selected,
+                        onClick = {
+                            navController.navigate(item.route) {
+                                launchSingleTop = true
+                                restoreState = true
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
                                 }
-                                scope.launch { drawerState.close() }
                             }
-                        )
-                    }
+                            scope.launch { drawerState.close() }
+                        }
+                    )
                 }
             }
-        ) {
-            Scaffold(
-                topBar = {
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                // 🔹 Solo muestra la barra superior si 'showChrome' es verdadero
+                if (showChrome) {
                     CenterAlignedTopAppBar(
                         title = { Text("SmartPark") },
                         navigationIcon = {
@@ -96,12 +100,14 @@ fun MainApp() {
                         }
                     )
                 }
-            ) { innerPadding ->
-                AppNavigation(
-                    navController = navController,
-                    modifier = Modifier.padding(innerPadding)
-                )
             }
+        ) { innerPadding ->
+            // 🔹 AppNavigation se llama UNA SOLA VEZ
+            // El 'innerPadding' será (0.dp) si la topBar está oculta
+            AppNavigation(
+                navController = navController,
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
 }
