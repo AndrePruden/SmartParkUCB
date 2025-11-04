@@ -64,4 +64,9 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material.icons.extended.android)
+
+    //Login Implements:
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2")) // Platform BOM
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 }
