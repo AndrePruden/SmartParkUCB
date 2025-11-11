@@ -108,7 +108,7 @@ fun ParkingScreen(
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
-                    Spacer(Modifier.width(36.dp)) // CALLE 1
+                    Spacer(Modifier.width(36.dp))
 
                     ColumnSlots(
                         slots = col2,
@@ -116,7 +116,7 @@ fun ParkingScreen(
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
-                    Spacer(Modifier.width(16.dp)) // gap interno
+                    Spacer(Modifier.width(16.dp))
 
                     ColumnSlots(
                         slots = col3,

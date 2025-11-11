@@ -20,7 +20,7 @@ class ParkingViewModel(
 ) : ViewModel() {
 
     /** Lotes disponibles en el selector de la UI. */
-    val lots: List<String> = listOf("parking1", "parking2")
+    val lots: List<String> = listOf("Tupuraya 1", "Tupuraya 2")
 
     /** Lote seleccionado actualmente. */
     private val _selectedLot = MutableStateFlow(lots.first())

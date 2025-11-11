@@ -40,17 +40,14 @@ fun MainApp() {
         NavigationDrawer.Dollar
     )
 
-    // Detectar ruta actual
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // 🔹 Lista de rutas que NO deben mostrar la barra superior ni el menú
     val routesWithoutChrome = listOf(Screen.Splash.route, Screen.Login.route)
     val showChrome = currentRoute !in routesWithoutChrome
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        // 🔹 Solo permite abrir el menú si 'showChrome' es verdadero
         gesturesEnabled = showChrome,
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.width(260.dp)) {
@@ -89,7 +86,6 @@ fun MainApp() {
     ) {
         Scaffold(
             topBar = {
-                // 🔹 Solo muestra la barra superior si 'showChrome' es verdadero
                 if (showChrome) {
                     CenterAlignedTopAppBar(
                         title = { Text("SmartPark") },
@@ -102,8 +98,6 @@ fun MainApp() {
                 }
             }
         ) { innerPadding ->
-            // 🔹 AppNavigation se llama UNA SOLA VEZ
-            // El 'innerPadding' será (0.dp) si la topBar está oculta
             AppNavigation(
                 navController = navController,
                 modifier = Modifier.padding(innerPadding)
