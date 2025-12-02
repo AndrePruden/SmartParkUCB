@@ -5,19 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,23 +14,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.* // Importamos todo Material3
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -51,7 +24,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ucb.smartpark.R
@@ -59,6 +31,7 @@ import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
 import com.ucb.smartpark.features.parking.domain.vo.LotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 
 // Colores personalizados
@@ -72,181 +45,157 @@ fun ParkingScreen(
     val state by vm.state.collectAsState()
     val selectedLot by vm.selectedLot.collectAsState()
 
-    // 1. Estado para controlar si mostramos el croquis o no
-    var showCroquis by remember { mutableStateOf(false) }
+    // 1. Estado para el Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    var showCroquis by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    // Lógica para el Dialogo (Popup)
+    // 2. Escuchar el evento de mensaje del ViewModel
+    LaunchedEffect(key1 = true) {
+        vm.uiMessage.collectLatest { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
+
+    // Dialogo Croquis (Código sin cambios)
     if (showCroquis) {
         Dialog(onDismissRequest = { showCroquis = false }) {
-            // Contenedor del Dialogo
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Título y botón cerrar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Croquis: ${selectedLot.value}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Croquis: ${selectedLot.value}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         IconButton(onClick = { showCroquis = false }) {
                             Icon(Icons.Default.Close, contentDescription = "Cerrar")
                         }
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    // Seleccionamos la imagen correcta
-                    val imageRes = if (selectedLot.value.contains("1")) {
-                        R.drawable.tupuraya1
-                    } else {
-                        R.drawable.tupuraya2
-                    }
-
-                    // Imagen del mapa
+                    val imageRes = if (selectedLot.value.contains("1")) R.drawable.tupuraya1 else R.drawable.tupuraya2
                     Image(
                         painter = painterResource(id = imageRes),
-                        contentDescription = "Mapa del campus",
+                        contentDescription = "Mapa",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                        // Opcional: limitar altura si la imagen es muy larga
-                        // .heightIn(max = 400.dp)
+                        modifier = Modifier.fillMaxWidth().wrapContentHeight()
                     )
                 }
             }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
-    ) {
-        // Selector de Parqueo + Botón de Info
-        LotSelector(
-            lots = vm.lots,
-            selected = selectedLot,
-            onSelect = vm::onLotSelected,
-            onInfoClick = { showCroquis = true } // Abrimos el dialog
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        when (val s = state) {
-            is ParkingViewModel.UiState.Loading -> Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+    // 3. Envolvemos todo en un Scaffold para soportar el Snackbar
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // El contenido principal
+        content = { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues) // Respetamos el padding del scaffold
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.Start
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.width(12.dp))
-                    Text("Conectando con ${selectedLot.value}…")
-                }
-            }
-
-            is ParkingViewModel.UiState.Error -> Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterStart
-            ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
-
-            is ParkingViewModel.UiState.Maintenance -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Cerrado",
-                        modifier = Modifier.size(80.dp),
-                        tint = Color.Gray
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = "PARQUEO CERRADO",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = s.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                }
-            }
-
-            is ParkingViewModel.UiState.Success -> {
-                val map = s.slots.associateBy { it.id }
-
-                val all32: List<ParkingSlot> = (1..32).map { idInt ->
-                    val idVo = SlotId(idInt)
-                    map[idVo] ?: ParkingSlot(id = idVo, status = SlotStatus.Free)
-                }
-
-                val col1 = all32.slice(0..7)
-                val col2 = all32.slice(8..15)
-                val col3 = all32.slice(16..23)
-                val col4 = all32.slice(24..31)
-
-                val libres = all32.count { !it.status.value }
-                val ocupados = all32.size - libres
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = AsphaltColor,
-                    shadowElevation = 4.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        ColumnSlots(slots = col1, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
-                        DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
-                        ColumnSlots(slots = col2, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
-                        Spacer(Modifier.width(16.dp))
-                        ColumnSlots(slots = col3, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
-                        DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
-                        ColumnSlots(slots = col4, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
-                    }
-                }
+                // Selector de Parqueo + Botón de Info
+                LotSelector(
+                    lots = vm.lots,
+                    selected = selectedLot,
+                    onSelect = vm::onLotSelected,
+                    onInfoClick = { showCroquis = true }
+                )
 
                 Spacer(Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatusChip(count = libres, label = "Libres", color = Color(0xFF4CAF50))
-                    StatusChip(count = ocupados, label = "Ocupados", color = Color(0xFFD32F2F))
+                when (val s = state) {
+                    is ParkingViewModel.UiState.Loading -> Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator()
+                            Spacer(Modifier.width(12.dp))
+                            Text("Conectando con ${selectedLot.value}…")
+                        }
+                    }
+
+                    is ParkingViewModel.UiState.Error -> Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.CenterStart
+                    ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
+
+                    is ParkingViewModel.UiState.Maintenance -> Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Cerrado",
+                                modifier = Modifier.size(80.dp),
+                                tint = Color.Gray
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = "PARQUEO CERRADO",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = s.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+
+                    is ParkingViewModel.UiState.Success -> {
+                        // ... (Todo el código de renderizado del mapa sigue igual) ...
+                        val map = s.slots.associateBy { it.id }
+                        val all32 = (1..32).map { idInt -> val idVo = SlotId(idInt); map[idVo] ?: ParkingSlot(id = idVo, status = SlotStatus.Free) }
+                        val col1 = all32.slice(0..7); val col2 = all32.slice(8..15); val col3 = all32.slice(16..23); val col4 = all32.slice(24..31)
+                        val libres = all32.count { !it.status.value }; val ocupados = all32.size - libres
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = AsphaltColor,
+                            shadowElevation = 4.dp
+                        ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                                ColumnSlots(slots = col1, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                                DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
+                                ColumnSlots(slots = col2, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(Modifier.width(16.dp))
+                                ColumnSlots(slots = col3, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                                DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
+                                ColumnSlots(slots = col4, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            StatusChip(count = libres, label = "Libres", color = Color(0xFF4CAF50))
+                            StatusChip(count = ocupados, label = "Ocupados", color = Color(0xFFD32F2F))
+                        }
+                        Spacer(Modifier.height(32.dp))
+                    }
                 }
-                Spacer(Modifier.height(32.dp))
             }
         }
-    }
+    )
 }
 
 @Composable
@@ -314,68 +263,41 @@ private fun CarSlotRealistic(id: Int, occupied: Boolean, onClick: () -> Unit) {
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LotSelector(
     lots: List<LotId>,
     selected: LotId,
     onSelect: (LotId) -> Unit,
-    onInfoClick: () -> Unit // Nuevo callback
+    onInfoClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Usamos Row para poner el Dropdown y el Botón uno al lado del otro
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Dropdown (ocupa el peso restante)
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded },
             modifier = Modifier.weight(1f)
         ) {
             OutlinedTextField(
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
                 readOnly = true,
                 value = selected.value,
                 onValueChange = {},
                 label = { Text("Ubicación del Parqueo") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 lots.forEach { lot ->
-                    DropdownMenuItem(
-                        text = { Text(lot.value) },
-                        onClick = {
-                            expanded = false
-                            onSelect(lot)
-                        }
-                    )
+                    DropdownMenuItem(text = { Text(lot.value) }, onClick = { expanded = false; onSelect(lot) })
                 }
             }
         }
-
         Spacer(modifier = Modifier.width(8.dp))
-
-        // Botón de Información
-        androidx.compose.material3.FilledTonalIconButton(
-            onClick = onInfoClick
-        ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = "Ver croquis"
-            )
+        androidx.compose.material3.FilledTonalIconButton(onClick = onInfoClick) {
+            Icon(imageVector = Icons.Default.Info, contentDescription = "Ver croquis")
         }
     }
 }

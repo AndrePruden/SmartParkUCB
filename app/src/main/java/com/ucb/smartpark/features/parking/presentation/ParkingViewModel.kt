@@ -10,11 +10,13 @@ import com.ucb.smartpark.features.parking.domain.vo.LotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class ParkingViewModel(
@@ -27,6 +29,10 @@ class ParkingViewModel(
 
     private val _selectedLot = MutableStateFlow(lots.first())
     val selectedLot: StateFlow<LotId> = _selectedLot.asStateFlow()
+
+    // Evento para el Snackbar
+    private val _uiMessage = MutableSharedFlow<String>()
+    val uiMessage = _uiMessage.asSharedFlow()
 
     sealed class UiState {
         object Loading : UiState()
@@ -41,34 +47,62 @@ class ParkingViewModel(
     private var observeJob: Job? = null
 
     init {
+        // 1. Carga inicial
         onLotSelected(_selectedLot.value)
+        // 2. Escucha activa de cambios
+        startListeningToConfigChanges()
+    }
+
+    private fun startListeningToConfigChanges() {
+        viewModelScope.launch {
+            configRepo.observeConfigUpdates().collectLatest { newStatus ->
+                // ¡Alerta visual!
+                _uiMessage.emit("⚠️ Aviso: El estado de mantenimiento ha cambiado.")
+
+                // Re-evaluar el estado actual con el nuevo valor
+                val currentLot = _selectedLot.value
+                val isClosed = checkIsClosed(newStatus, currentLot)
+
+                if (isClosed) {
+                    // Si se cerró, cortamos la conexión a DB y mostramos mantenimiento
+                    observeJob?.cancel()
+                    _state.value = UiState.Maintenance("Este parqueo se encuentra cerrado por mantenimiento.")
+                } else {
+                    // Si se abrió y estábamos en mantenimiento, recargamos
+                    if (_state.value is UiState.Maintenance) {
+                        onLotSelected(currentLot)
+                    }
+                }
+            }
+        }
+    }
+
+    // Lógica auxiliar para verificar si está cerrado
+    private fun checkIsClosed(status: Int, lotId: LotId): Boolean {
+        return when {
+            status == 3 -> true
+            status == 1 && lotId.value == "Tupuraya 1" -> true
+            status == 2 && lotId.value == "Tupuraya 2" -> true
+            else -> false
+        }
     }
 
     fun onLotSelected(lotId: LotId) {
-        // Actualizamos el lote seleccionado inmediatamente
         _selectedLot.value = lotId
-
         observeJob?.cancel()
+
         observeJob = viewModelScope.launch(Dispatchers.IO) {
             _state.value = UiState.Loading
 
-            // 1. Verificar Remote Config antes de observar datos
+            // Verificación inicial (Fetch forzado gracias al intervalo 0)
             val status = configRepo.fetchParkingStatus()
 
-            // Lógica de bloqueo según el valor de Remote Config
-            val isClosed = when {
-                status == 3 -> true // Ambos cerrados
-                status == 1 && lotId.value == "Tupuraya 1" -> true
-                status == 2 && lotId.value == "Tupuraya 2" -> true
-                else -> false
-            }
-
-            if (isClosed) {
+            if (checkIsClosed(status, lotId)) {
                 _state.value = UiState.Maintenance("Este parqueo se encuentra cerrado por mantenimiento.")
                 return@launch
             }
 
-            // 2. Si está abierto, observamos los slots normalmente
+            // Si está abierto, observamos Slots
             observeParking(lotId)
                 .catch { e -> _state.value = UiState.Error(e.message ?: "Error") }
                 .collect { list -> _state.value = UiState.Success(list) }
@@ -76,13 +110,9 @@ class ParkingViewModel(
     }
 
     fun onSlotClicked(slot: ParkingSlot) {
-        // Evitamos clicks si el estado no es Success (ej. si está en Mantenimiento)
         if (_state.value !is UiState.Success) return
-
         viewModelScope.launch(Dispatchers.IO) {
-            val lotId = _selectedLot.value
-            val newStatus = SlotStatus(!slot.status.value)
-            toggleSlot(lotId, slot.id, newStatus)
+            toggleSlot(_selectedLot.value, slot.id, SlotStatus(!slot.status.value))
         }
     }
 }
