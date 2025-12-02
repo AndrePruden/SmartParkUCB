@@ -46,7 +46,7 @@ import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ParkingScreen(
+    fun ParkingScreen(
     vm: ParkingViewModel = koinViewModel()
 ) {
     val state by vm.state.collectAsState()
