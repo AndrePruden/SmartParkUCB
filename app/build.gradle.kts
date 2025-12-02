@@ -73,4 +73,7 @@ dependencies {
     //Firebase ConfigRemote
     implementation("com.google.firebase:firebase-config-ktx")
 
+    //Notificaciones Push
+    implementation("com.google.firebase:firebase-messaging-ktx")
+
 }
