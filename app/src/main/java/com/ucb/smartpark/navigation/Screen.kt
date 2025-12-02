@@ -1,7 +1,9 @@
 package com.ucb.smartpark.navigation
 
 sealed class Screen(val route: String) {
+    object Splash : Screen("splash_screen")
     object Login : Screen("login_screen")
-    object Home  : Screen("home_screen")      // si quieres mantenerla
-    object Parking : Screen("parking_screen") // ← NUEVO
+    object Home  : Screen("home_screen")
+    object Parking : Screen("parking_screen")
+    object Notifications : Screen("notifications_screen")
 }

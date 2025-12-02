@@ -1,7 +1,11 @@
 package com.ucb.smartpark.features.parking.domain.model
 
+import com.ucb.smartpark.features.parking.domain.vo.SlotId
+import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
+import com.ucb.smartpark.features.parking.domain.vo.Timestamp
+
 data class AuditEvent(
-    val slotId: Int,
-    val occupied: Boolean,
-    val timestamp: Long
+    val slotId: SlotId,
+    val status: SlotStatus,
+    val timestamp: Timestamp
 )

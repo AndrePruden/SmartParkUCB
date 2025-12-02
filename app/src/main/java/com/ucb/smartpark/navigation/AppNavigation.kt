@@ -6,7 +6,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.ucb.smartpark.features.auth.presentation.LoginScreen
+import com.ucb.smartpark.features.notifications.presentation.NotificationsScreen
 import com.ucb.smartpark.features.parking.presentation.ParkingScreen
+import com.ucb.smartpark.features.splash.presentation.SplashScreen
 
 @Composable
 fun AppNavigation(
@@ -15,9 +17,19 @@ fun AppNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route,
+        startDestination = Screen.Splash.route,
         modifier = modifier
     ) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onTimeout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -29,5 +41,6 @@ fun AppNavigation(
         }
         composable(Screen.Parking.route) { ParkingScreen() }
         composable(Screen.Home.route) { ParkingScreen() }
+        composable(Screen.Notifications.route) { NotificationsScreen() }
     }
 }

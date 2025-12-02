@@ -11,25 +11,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +40,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
+import com.ucb.smartpark.features.parking.domain.vo.LotId
+import com.ucb.smartpark.features.parking.domain.vo.SlotId
+import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -69,20 +75,42 @@ fun ParkingScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator()
                     Spacer(Modifier.width(12.dp))
-                    Text("Cargando $selectedLot…")
+                    Text("Cargando ${selectedLot.value}…")
                 }
             }
 
             is ParkingViewModel.UiState.Error -> Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterStart
-            ) { Text(s.message) }
+            ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
+
+            // Estado de Mantenimiento (Remote Config)
+            is ParkingViewModel.UiState.Maintenance -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Cerrado",
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.Gray
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = s.message,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
 
             is ParkingViewModel.UiState.Success -> {
-                // Garantiza 32 slots (1..32)
                 val map = s.slots.associateBy { it.id }
-                val all32: List<ParkingSlot> = (1..32).map { id ->
-                    map[id] ?: ParkingSlot(id = id, isOccupied = false)
+
+                val all32: List<ParkingSlot> = (1..32).map { idInt ->
+                    val idVo = SlotId(idInt)
+                    map[idVo] ?: ParkingSlot(id = idVo, status = SlotStatus.Free)
                 }
 
                 // Columnas: 1..8 | 9..16 | 17..24 | 25..32
@@ -91,10 +119,9 @@ fun ParkingScreen(
                 val col3 = all32.slice(16..23)
                 val col4 = all32.slice(24..31)
 
-                val libres = all32.count { !it.isOccupied }
+                val libres = all32.count { !it.status.value }
                 val ocupados = all32.size - libres
 
-                // TABLA: anclada arriba y con alto envuelto
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -108,7 +135,7 @@ fun ParkingScreen(
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
-                    Spacer(Modifier.width(36.dp)) // CALLE 1
+                    Spacer(Modifier.width(36.dp))
 
                     ColumnSlots(
                         slots = col2,
@@ -116,7 +143,7 @@ fun ParkingScreen(
                         modifier = Modifier.weight(1f, fill = false)
                     )
 
-                    Spacer(Modifier.width(16.dp)) // gap interno
+                    Spacer(Modifier.width(16.dp))
 
                     ColumnSlots(
                         slots = col3,
@@ -138,7 +165,6 @@ fun ParkingScreen(
                     text = "Libres: $libres   |   Ocupados: $ocupados",
                     style = MaterialTheme.typography.labelLarge
                 )
-
             }
         }
     }
@@ -157,14 +183,18 @@ private fun ColumnSlots(
     ) {
         slots.forEach { slot ->
             CarSlotCompact(
-                id = slot.id,
-                occupied = slot.isOccupied,
+                id = slot.id.value,
+                occupied = slot.status.value,
                 onClick = { onClick(slot) }
             )
         }
     }
 }
 
+/**
+ * Componente de UI puro. No sabe nada de Value Objects, solo recibe primitivos.
+ * Esto lo hace reutilizable y fácil de previsualizar.
+ */
 @Composable
 private fun CarSlotCompact(
     id: Int,
@@ -199,9 +229,9 @@ private fun CarSlotCompact(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LotSelector(
-    lots: List<String>,
-    selected: String,
-    onSelect: (String) -> Unit
+    lots: List<LotId>,
+    selected: LotId,
+    onSelect: (LotId) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -214,7 +244,7 @@ private fun LotSelector(
                 .menuAnchor()
                 .widthIn(min = 180.dp),
             readOnly = true,
-            value = selected,
+            value = selected.value,
             onValueChange = {},
             label = { Text("Parqueo") },
             trailingIcon = {
@@ -228,7 +258,7 @@ private fun LotSelector(
         ) {
             lots.forEach { lot ->
                 DropdownMenuItem(
-                    text = { Text(lot) },
+                    text = { Text(lot.value) },
                     onClick = {
                         expanded = false
                         onSelect(lot)
