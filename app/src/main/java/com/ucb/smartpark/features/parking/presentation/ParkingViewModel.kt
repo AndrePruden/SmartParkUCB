@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
 import com.ucb.smartpark.features.parking.domain.usecase.ObserveParkingUseCase
 import com.ucb.smartpark.features.parking.domain.usecase.ToggleSlotUseCase
+import com.ucb.smartpark.features.parking.domain.vo.LotId
+import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +21,10 @@ class ParkingViewModel(
     private val toggleSlot: ToggleSlotUseCase
 ) : ViewModel() {
 
-    /** Lotes disponibles en el selector de la UI. */
-    val lots: List<String> = listOf("Tupuraya 1", "Tupuraya 2")
+    val lots: List<LotId> = listOf(LotId("Tupuraya 1"), LotId("Tupuraya 2"))
 
-    /** Lote seleccionado actualmente. */
     private val _selectedLot = MutableStateFlow(lots.first())
-    val selectedLot: StateFlow<String> = _selectedLot.asStateFlow()
+    val selectedLot: StateFlow<LotId> = _selectedLot.asStateFlow()
 
     sealed class UiState {
         object Loading : UiState()
@@ -41,14 +41,13 @@ class ParkingViewModel(
         startObserving(_selectedLot.value)
     }
 
-    /** Cambia el parqueo y vuelve a observar en tiempo real. */
-    fun onLotSelected(lotId: String) {
+    fun onLotSelected(lotId: LotId) {
         if (lotId == _selectedLot.value) return
         _selectedLot.value = lotId
         startObserving(lotId)
     }
 
-    private fun startObserving(lotId: String) {
+    private fun startObserving(lotId: LotId) {
         observeJob?.cancel()
         observeJob = viewModelScope.launch(Dispatchers.IO) {
             observeParking(lotId)
@@ -58,11 +57,11 @@ class ParkingViewModel(
         }
     }
 
-    /** Alterna estado del slot en el lote actual. */
     fun onSlotClicked(slot: ParkingSlot) {
         viewModelScope.launch(Dispatchers.IO) {
             val lotId = _selectedLot.value
-            toggleSlot(lotId, slot.id, !slot.isOccupied)
+            val newStatus = SlotStatus(!slot.status.value)
+            toggleSlot(lotId, slot.id, newStatus)
         }
     }
 }
