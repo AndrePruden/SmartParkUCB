@@ -11,15 +11,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -78,7 +82,28 @@ fun ParkingScreen(
             is ParkingViewModel.UiState.Error -> Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterStart
-            ) { Text(s.message) }
+            ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
+
+            // Estado de Mantenimiento (Remote Config)
+            is ParkingViewModel.UiState.Maintenance -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Cerrado",
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.Gray
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = s.message,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Gray
+                    )
+                }
+            }
 
             is ParkingViewModel.UiState.Success -> {
                 val map = s.slots.associateBy { it.id }

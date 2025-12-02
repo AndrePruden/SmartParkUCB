@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.ucb.smartpark.features.auth.presentation.LoginScreen
+import com.ucb.smartpark.features.notifications.presentation.NotificationsScreen
 import com.ucb.smartpark.features.parking.presentation.ParkingScreen
 import com.ucb.smartpark.features.splash.presentation.SplashScreen
 
@@ -40,5 +41,6 @@ fun AppNavigation(
         }
         composable(Screen.Parking.route) { ParkingScreen() }
         composable(Screen.Home.route) { ParkingScreen() }
+        composable(Screen.Notifications.route) { NotificationsScreen() }
     }
 }

@@ -36,8 +36,9 @@ fun MainApp() {
     val scope = rememberCoroutineScope()
 
     val items = listOf(
-        NavigationDrawer.Profile,
-        NavigationDrawer.Dollar
+        NavigationDrawer.Parking,
+        NavigationDrawer.Notifications,
+        NavigationDrawer.Logout
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()

@@ -69,4 +69,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2")) // Platform BOM
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    //Firebase ConfigRemote
+    implementation("com.google.firebase:firebase-config-ktx")
+
 }
