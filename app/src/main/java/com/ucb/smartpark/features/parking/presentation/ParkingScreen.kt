@@ -1,6 +1,7 @@
 package com.ucb.smartpark.features.parking.presentation
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,17 +10,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -27,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -42,19 +48,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.ucb.smartpark.R
 import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
 import com.ucb.smartpark.features.parking.domain.vo.LotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import org.koin.androidx.compose.koinViewModel
 
-// Colores personalizados para el diseño de "Mapa"
-val AsphaltColor = Color(0xFF263238) // Gris oscuro azulado
-val ParkingLineColor = Color(0xFFECEFF1) // Blanco hueso
-val GrassColor = Color(0xFF4CAF50) // Verde para bordes (opcional)
+// Colores personalizados
+val AsphaltColor = Color(0xFF263238)
+val ParkingLineColor = Color(0xFFECEFF1)
 
 @Composable
 fun ParkingScreen(
@@ -63,17 +72,80 @@ fun ParkingScreen(
     val state by vm.state.collectAsState()
     val selectedLot by vm.selectedLot.collectAsState()
 
+    // 1. Estado para controlar si mostramos el croquis o no
+    var showCroquis by remember { mutableStateOf(false) }
+
+    val scrollState = rememberScrollState()
+
+    // Lógica para el Dialogo (Popup)
+    if (showCroquis) {
+        Dialog(onDismissRequest = { showCroquis = false }) {
+            // Contenedor del Dialogo
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Título y botón cerrar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Croquis: ${selectedLot.value}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        IconButton(onClick = { showCroquis = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Seleccionamos la imagen correcta
+                    val imageRes = if (selectedLot.value.contains("1")) {
+                        R.drawable.tupuraya1
+                    } else {
+                        R.drawable.tupuraya2
+                    }
+
+                    // Imagen del mapa
+                    Image(
+                        painter = painterResource(id = imageRes),
+                        contentDescription = "Mapa del campus",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                        // Opcional: limitar altura si la imagen es muy larga
+                        // .heightIn(max = 400.dp)
+                    )
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        // Selector de Parqueo
+        // Selector de Parqueo + Botón de Info
         LotSelector(
             lots = vm.lots,
             selected = selectedLot,
-            onSelect = vm::onLotSelected
+            onSelect = vm::onLotSelected,
+            onInfoClick = { showCroquis = true } // Abrimos el dialog
         )
 
         Spacer(Modifier.height(16.dp))
@@ -95,7 +167,6 @@ fun ParkingScreen(
                 contentAlignment = Alignment.CenterStart
             ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
 
-            // Estado de Mantenimiento (Remote Config)
             is ParkingViewModel.UiState.Maintenance -> Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -130,7 +201,6 @@ fun ParkingScreen(
                     map[idVo] ?: ParkingSlot(id = idVo, status = SlotStatus.Free)
                 }
 
-                // Columnas: 1..8 | 9..16 | 17..24 | 25..32
                 val col1 = all32.slice(0..7)
                 val col2 = all32.slice(8..15)
                 val col3 = all32.slice(16..23)
@@ -139,13 +209,12 @@ fun ParkingScreen(
                 val libres = all32.count { !it.status.value }
                 val ocupados = all32.size - libres
 
-                // --- CONTENEDOR DEL MAPA DEL PARQUEO ---
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight(),
                     shape = RoundedCornerShape(12.dp),
-                    color = AsphaltColor, // Fondo gris asfalto
+                    color = AsphaltColor,
                     shadowElevation = 4.dp
                 ) {
                     Row(
@@ -155,78 +224,37 @@ fun ParkingScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        // Bloque Izquierdo (Col 1 y 2)
-                        ColumnSlots(
-                            slots = col1,
-                            onClick = { vm.onSlotClicked(it) },
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        // Calle Pequeña (Línea divisoria)
-                        DrivingLane(
-                            modifier = Modifier
-                                .width(30.dp)
-                                .height(260.dp) // Altura aproximada del bloque
-                        )
-
-                        ColumnSlots(
-                            slots = col2,
-                            onClick = { vm.onSlotClicked(it) },
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        // CALLE PRINCIPAL (Separador grande)
+                        ColumnSlots(slots = col1, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                        DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
+                        ColumnSlots(slots = col2, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
                         Spacer(Modifier.width(16.dp))
-
-                        // Bloque Derecho (Col 3 y 4)
-                        ColumnSlots(
-                            slots = col3,
-                            onClick = { vm.onSlotClicked(it) },
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-
-                        // Calle Pequeña
-                        DrivingLane(
-                            modifier = Modifier
-                                .width(30.dp)
-                                .height(260.dp)
-                        )
-
-                        ColumnSlots(
-                            slots = col4,
-                            onClick = { vm.onSlotClicked(it) },
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
+                        ColumnSlots(slots = col3, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
+                        DrivingLane(modifier = Modifier.width(30.dp).height(260.dp))
+                        ColumnSlots(slots = col4, onClick = { vm.onSlotClicked(it) }, modifier = Modifier.weight(1f, fill = false))
                     }
                 }
-                // ---------------------------------------
 
                 Spacer(Modifier.height(16.dp))
 
-                // Resumen
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatusChip(count = libres, label = "Libres", color = Color(0xFF4CAF50)) // Verde
-                    StatusChip(count = ocupados, label = "Ocupados", color = Color(0xFFD32F2F)) // Rojo
+                    StatusChip(count = libres, label = "Libres", color = Color(0xFF4CAF50))
+                    StatusChip(count = ocupados, label = "Ocupados", color = Color(0xFFD32F2F))
                 }
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
 }
 
-/**
- * Dibuja una línea punteada para simular el carril de circulación
- */
 @Composable
 fun DrivingLane(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.width
             val canvasHeight = size.height
-
-            // Dibujar línea punteada central
             drawLine(
                 color = Color.White.copy(alpha = 0.5f),
                 start = Offset(x = canvasWidth / 2, y = 0f),
@@ -249,133 +277,105 @@ fun StatusChip(count: Int, label: String, color: Color) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+            Text(text = count.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = color
-            )
+            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = color)
         }
     }
 }
 
-
 @Composable
-private fun ColumnSlots(
-    slots: List<ParkingSlot>,
-    onClick: (ParkingSlot) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(6.dp), // Espacio entre autos
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+private fun ColumnSlots(slots: List<ParkingSlot>, onClick: (ParkingSlot) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         slots.forEach { slot ->
-            CarSlotRealistic(
-                id = slot.id.value,
-                occupied = slot.status.value,
-                onClick = { onClick(slot) }
-            )
+            CarSlotRealistic(id = slot.id.value, occupied = slot.status.value, onClick = { onClick(slot) })
         }
     }
 }
 
-/**
- * Nuevo diseño de Slot más realista
- */
 @Composable
-private fun CarSlotRealistic(
-    id: Int,
-    occupied: Boolean,
-    onClick: () -> Unit
-) {
-    // Si está ocupado: Rojo + Icono de Auto
-    // Si está libre: Verde transparente + Borde (pintura de piso)
+private fun CarSlotRealistic(id: Int, occupied: Boolean, onClick: () -> Unit) {
     val bgColor = if (occupied) Color(0xFFD32F2F) else Color(0xFF4CAF50).copy(alpha = 0.8f)
     val contentColor = Color.White
-
     Surface(
-        modifier = Modifier
-            .width(50.dp) // Ancho fijo para uniformidad
-            .height(28.dp)
-            .clickable { onClick() },
+        modifier = Modifier.width(50.dp).height(28.dp).clickable { onClick() },
         shape = RoundedCornerShape(4.dp),
         color = bgColor,
-        shadowElevation = if (occupied) 4.dp else 0.dp, // El auto tiene sombra, el piso no
+        shadowElevation = if (occupied) 4.dp else 0.dp,
         border = if (!occupied) androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             if (occupied) {
-                // Icono de auto
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(imageVector = Icons.Default.DirectionsCar, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
             } else {
-                // Número de parqueo pintado en el piso
-                Text(
-                    text = id.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = id.toString(), style = MaterialTheme.typography.labelSmall, color = contentColor, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LotSelector(
     lots: List<LotId>,
     selected: LotId,
-    onSelect: (LotId) -> Unit
+    onSelect: (LotId) -> Unit,
+    onInfoClick: () -> Unit // Nuevo callback
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+    // Usamos Row para poner el Dropdown y el Botón uno al lado del otro
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(), // Ocupar todo el ancho
-            readOnly = true,
-            value = selected.value,
-            onValueChange = {},
-            label = { Text("Ubicación del Parqueo") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true
-        )
-        ExposedDropdownMenu(
+        // Dropdown (ocupa el peso restante)
+        ExposedDropdownMenuBox(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(1f)
         ) {
-            lots.forEach { lot ->
-                DropdownMenuItem(
-                    text = { Text(lot.value) },
-                    onClick = {
-                        expanded = false
-                        onSelect(lot)
-                    }
-                )
+            OutlinedTextField(
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                readOnly = true,
+                value = selected.value,
+                onValueChange = {},
+                label = { Text("Ubicación del Parqueo") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                lots.forEach { lot ->
+                    DropdownMenuItem(
+                        text = { Text(lot.value) },
+                        onClick = {
+                            expanded = false
+                            onSelect(lot)
+                        }
+                    )
+                }
             }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Botón de Información
+        androidx.compose.material3.FilledTonalIconButton(
+            onClick = onInfoClick
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Ver croquis"
+            )
         }
     }
 }
