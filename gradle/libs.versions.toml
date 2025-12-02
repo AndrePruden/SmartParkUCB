@@ -17,6 +17,10 @@ googleGmsGoogleServices = "4.4.3"
 firebaseDatabase = "22.0.1"
 firebaseFirestore = "26.0.1"
 
+mockk = "1.13.10"
+coroutinesTest = "1.8.1" # Debe coincidir con tu version de coroutines
+turbine = "1.0.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-material-icons-extended-android = { module = "androidx.compose.material:material-icons-extended-android", version.ref = "materialIconsExtendedAndroid" }
@@ -40,6 +44,13 @@ koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", versi
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesPlayServices" } # Usamos la ref que ya tienes o la version explicita
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+koin-test = { module = "io.insert-koin:koin-test", version.ref = "koinAndroid" }
+koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4", version.ref = "koinAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
