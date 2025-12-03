@@ -10,8 +10,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource // 👈 Importante
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ucb.smartpark.R
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -29,7 +31,7 @@ fun NotificationsScreen(
     ) {
         Icon(
             imageVector = Icons.Default.Notifications,
-            contentDescription = "Notificaciones",
+            contentDescription = stringResource(R.string.notifications_title), // 👈 String Resource
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.primary
         )
@@ -37,7 +39,7 @@ fun NotificationsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Centro de Mensajes",
+            text = stringResource(R.string.message_center_title), // 👈 String Resource
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -48,7 +50,7 @@ fun NotificationsScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Text(
-                text = message,
+                text = message, // Este mensaje viene del VM (puede quedarse así o refactorizarse luego)
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(16.dp)
@@ -60,7 +62,7 @@ fun NotificationsScreen(
         Button(onClick = { vm.fetchStatus() }) {
             Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Actualizar")
+            Text(stringResource(R.string.refresh_button)) // 👈 String Resource
         }
     }
 }

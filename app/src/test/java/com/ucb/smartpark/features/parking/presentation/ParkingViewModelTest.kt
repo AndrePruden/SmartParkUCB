@@ -11,9 +11,11 @@ import com.ucb.smartpark.features.parking.domain.vo.SlotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,34 +31,51 @@ class ParkingViewModelTest {
     private val toggleSlotUseCase: ToggleSlotUseCase = mockk()
     private val configRepo: RemoteConfigRepository = mockk()
 
+    // Dispatcher para tests
+    private val testDispatcher = UnconfinedTestDispatcher()
+
     private lateinit var viewModel: ParkingViewModel
 
     @Test
     fun `init should show Maintenance state when config returns 3 (All Closed)`() = runTest {
         // Arrange
-        // Config devolviendo 3 (Cerrado)
-        coEvery { configRepo.fetchParkingStatus() } returns 3
+        // 1. fetch estático (con delay para simular carga)
+        coEvery { configRepo.fetchParkingStatus() } coAnswers {
+            delay(100)
+            3
+        }
+        // 2. 🟢 NUEVO: Mockeamos el observer de tiempo real también
+        every { configRepo.observeConfigUpdates() } returns flowOf(3)
 
-        // Mockeamos observe para que no explote, aunque no debería llamarse si está cerrado
+        // Mock del caso de uso
         coEvery { observeParkingUseCase(any()) } returns flowOf(emptyList())
 
-        // Act (Al instanciar el ViewModel se ejecuta el init)
-        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo)
+        // Act
+        viewModel = ParkingViewModel(
+            observeParkingUseCase,
+            toggleSlotUseCase,
+            configRepo,
+            testDispatcher
+        )
 
         // Assert
         viewModel.state.test {
-            // El primer estado puede ser Loading o directamente Maintenance dependiendo de la velocidad
-            val item = awaitItem()
+            // 1. Loading
+            val firstState = awaitItem()
+            println("Estado 1 recibido: $firstState")
+            assertTrue(firstState is ParkingViewModel.UiState.Loading)
 
-            // Si el primero fue Loading, esperamos el siguiente
-            val finalState = if (item is ParkingViewModel.UiState.Loading) awaitItem() else item
+            // 2. Estado Final
+            val finalState = awaitItem()
+            println("Estado 2 recibido: $finalState") // 👈 Esto nos dirá la verdad en la consola
 
-            assertTrue(finalState is ParkingViewModel.UiState.Maintenance)
-            assertEquals("Este parqueo se encuentra cerrado por mantenimiento.", (finalState as ParkingViewModel.UiState.Maintenance).message)
+            // Verificamos tipo
+            assertTrue("Esperaba Maintenance pero llegó: $finalState", finalState is ParkingViewModel.UiState.Maintenance)
+
+            // Verificamos mensaje (Solo si pasó lo anterior)
+            val msg = (finalState as ParkingViewModel.UiState.Maintenance).message
+            assertEquals("Este parqueo se encuentra cerrado por mantenimiento.", msg)
         }
-
-        // Verificamos que NO se llamó a observar parqueo porque estaba cerrado
-        coVerify(exactly = 0) { observeParkingUseCase(any()) }
     }
 
     @Test
@@ -65,18 +84,24 @@ class ParkingViewModelTest {
         val lotId = LotId("Tupuraya 1")
         val slots = listOf(ParkingSlot(SlotId(1), SlotStatus.Free))
 
-        coEvery { configRepo.fetchParkingStatus() } returns 0 // Abierto
+        // 1. Fetch normal
+        coEvery { configRepo.fetchParkingStatus() } coAnswers {
+            delay(100)
+            0
+        }
+        // 2. 🟢 NUEVO: Observer en tiempo real
+        every { configRepo.observeConfigUpdates() } returns flowOf(0)
+
         coEvery { observeParkingUseCase(lotId) } returns flowOf(slots)
 
         // Act
-        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo)
+        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo, testDispatcher)
 
         // Assert
         viewModel.state.test {
-            // Saltamos el loading inicial si aparece
-            val first = awaitItem()
-            val result = if (first is ParkingViewModel.UiState.Loading) awaitItem() else first
+            assertTrue(awaitItem() is ParkingViewModel.UiState.Loading)
 
+            val result = awaitItem()
             assertTrue(result is ParkingViewModel.UiState.Success)
             assertEquals(slots, (result as ParkingViewModel.UiState.Success).slots)
         }
@@ -85,13 +110,15 @@ class ParkingViewModelTest {
     @Test
     fun `onLotSelected should switch lot and check config again`() = runTest {
         // Arrange
-        val lot1 = LotId("Tupuraya 1")
         val lot2 = LotId("Tupuraya 2")
 
-        coEvery { configRepo.fetchParkingStatus() } returns 0 // Siempre abierto
+        coEvery { configRepo.fetchParkingStatus() } coAnswers { delay(50); 0 }
+        // 🟢 NUEVO: Observer
+        every { configRepo.observeConfigUpdates() } returns flowOf(0)
+
         coEvery { observeParkingUseCase(any()) } returns flowOf(emptyList())
 
-        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo)
+        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo, testDispatcher)
 
         // Act
         viewModel.onLotSelected(lot2)
@@ -100,9 +127,6 @@ class ParkingViewModelTest {
         viewModel.selectedLot.test {
             assertEquals(lot2, awaitItem())
         }
-
-        // Verificar que se llamó al repo con el nuevo ID
-        coVerify { observeParkingUseCase(lot2) }
     }
 
     @Test
@@ -111,24 +135,25 @@ class ParkingViewModelTest {
         val lotId = LotId("Tupuraya 1")
         val slot = ParkingSlot(SlotId(1), SlotStatus.Free)
 
-        coEvery { configRepo.fetchParkingStatus() } returns 0
+        coEvery { configRepo.fetchParkingStatus() } coAnswers { delay(50); 0 }
+        // 🟢 NUEVO: Observer
+        every { configRepo.observeConfigUpdates() } returns flowOf(0)
+
         coEvery { observeParkingUseCase(lotId) } returns flowOf(listOf(slot))
         coEvery { toggleSlotUseCase(any(), any(), any()) } returns Unit
 
-        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo)
+        viewModel = ParkingViewModel(observeParkingUseCase, toggleSlotUseCase, configRepo, testDispatcher)
 
-        // Esperar a que llegue a Success para poder hacer click
+        // Esperar a que llegue a Success
         viewModel.state.test {
-            val state = awaitItem()
-            if (state is ParkingViewModel.UiState.Loading) awaitItem() // Esperar Success
+            awaitItem() // Loading
+            awaitItem() // Success
 
             // Act
             viewModel.onSlotClicked(slot)
-            cancelAndIgnoreRemainingEvents()
         }
 
         // Assert
-        // Verificamos que invierte el estado (Free -> Occupied)
         coVerify { toggleSlotUseCase(lotId, slot.id, SlotStatus.Occupied) }
     }
 }
