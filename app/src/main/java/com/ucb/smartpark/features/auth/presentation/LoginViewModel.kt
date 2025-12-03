@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.ucb.smartpark.features.auth.domain.usecase.LoginUseCase
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -28,6 +29,18 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
     fun onSignInClick() {
         viewModelScope.launch {
             _launchGoogleSignIn.emit(Unit)
+        }
+    }
+
+    // 👇 NUEVA FUNCIÓN PARA TESTERS
+    fun onGuestLoginClick() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            // Simulamos un pequeño tiempo de carga para que se sienta natural
+            delay(500)
+            // Emitimos éxito directamente
+            _loginEvent.emit(Unit)
+            _state.update { it.copy(isLoading = false) }
         }
     }
 
