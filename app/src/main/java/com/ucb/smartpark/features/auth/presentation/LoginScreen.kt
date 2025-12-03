@@ -119,6 +119,18 @@ fun LoginScreen(
                     Text("CONTINUAR CON GOOGLE", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            TextButton(
+                onClick = viewModel::onGuestLoginClick,
+                enabled = !state.isLoading
+            ) {
+                Text(
+                    text = "Entrar sin Iniciar Sesión",
+                    color = Color.Gray, // Color discreto
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }
