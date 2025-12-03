@@ -38,6 +38,17 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+    packaging {
+        resources {
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
+        }
+    }
 }
 
 dependencies {
@@ -52,13 +63,27 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.firebase.database)
     implementation(libs.firebase.firestore)
+
+    // Unit Testing
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+
+    // Koin Unit Test
+    testImplementation(libs.koin.test)
+    testImplementation(libs.koin.test.junit4)
+
+    // UI Testing / Instrumented Test
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android) // Mockk para Android UI
+
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
     // SmartPark Implementations:
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
@@ -75,5 +100,4 @@ dependencies {
 
     //Notificaciones Push
     implementation("com.google.firebase:firebase-messaging-ktx")
-
 }

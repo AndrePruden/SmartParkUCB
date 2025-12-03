@@ -27,7 +27,7 @@ import com.ucb.smartpark.R
 import com.ucb.smartpark.ui.theme.UcbYellow
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
-
+import androidx.compose.ui.platform.testTag
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -108,12 +108,18 @@ fun LoginScreen(
                 onClick = viewModel::onSignInClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(50.dp)
+                    .testTag("loginButton"), // 👈 ETIQUETA NUEVA
                 enabled = !state.isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = UcbYellow)
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("loadingIndicator"), // 👈 ETIQUETA NUEVA
+                        color = Color.White
+                    )
                 } else {
                     // TODO: añadir el icono de Google aquí
                     Text("CONTINUAR CON GOOGLE", color = Color.Black, fontWeight = FontWeight.Bold)
