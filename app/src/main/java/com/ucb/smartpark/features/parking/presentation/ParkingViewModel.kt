@@ -8,6 +8,7 @@ import com.ucb.smartpark.features.parking.domain.usecase.ObserveParkingUseCase
 import com.ucb.smartpark.features.parking.domain.usecase.ToggleSlotUseCase
 import com.ucb.smartpark.features.parking.domain.vo.LotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotStatus
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,7 +23,8 @@ import kotlinx.coroutines.launch
 class ParkingViewModel(
     private val observeParking: ObserveParkingUseCase,
     private val toggleSlot: ToggleSlotUseCase,
-    private val configRepo: RemoteConfigRepository
+    private val configRepo: RemoteConfigRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     val lots: List<LotId> = listOf(LotId("Tupuraya 1"), LotId("Tupuraya 2"))

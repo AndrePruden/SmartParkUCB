@@ -17,7 +17,7 @@ fun AppNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route,
+        startDestination = Screen.Parking.route,
         modifier = modifier
     ) {
         composable(Screen.Splash.route) {

@@ -3,7 +3,7 @@ package com.ucb.smartpark.features.auth.presentation
 import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts // 👈 Importar este
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -16,18 +16,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource // 👈 Importante
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.ucb.smartpark.R
 import com.ucb.smartpark.ui.theme.UcbYellow
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.ui.platform.testTag
+
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -36,9 +37,13 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
+    // Variables para strings que se usan dentro de callbacks (donde no hay @Composable)
+    val loginErrorMsg = stringResource(R.string.google_sign_in_error)
+    val loginCanceledMsg = stringResource(R.string.login_canceled)
+
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestIdToken(context.getString(R.string.default_web_client_id)) // Este ya estaba en strings
             .requestEmail()
             .build()
         GoogleSignIn.getClient(context, gso)
@@ -53,12 +58,12 @@ fun LoginScreen(
                 val account = task.getResult(ApiException::class.java)!!
                 viewModel.onGoogleSignInSuccess(account)
             } catch (e: ApiException) {
-                Log.w("LoginScreen", "Google sign in failed", e)
+                Log.w("LoginScreen", loginErrorMsg, e)
                 viewModel.onGoogleSignInError(e.message)
             }
         } else {
-            Log.w("LoginScreen", "Google sign in cancelled by user. Result code: ${result.resultCode}")
-            viewModel.onGoogleSignInError("Inicio de sesión cancelado")
+            Log.w("LoginScreen", "Result code: ${result.resultCode}")
+            viewModel.onGoogleSignInError(loginCanceledMsg)
         }
     }
 
@@ -87,7 +92,7 @@ fun LoginScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.smart_park_logo),
-                contentDescription = "Logo de Smart Park",
+                contentDescription = stringResource(R.string.login_logo_desc), // 👈 String Resource
                 modifier = Modifier.width(250.dp)
             )
 
@@ -109,7 +114,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
-                    .testTag("loginButton"), // 👈 ETIQUETA NUEVA
+                    .testTag("loginButton"),
                 enabled = !state.isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = UcbYellow)
             ) {
@@ -117,12 +122,15 @@ fun LoginScreen(
                     CircularProgressIndicator(
                         modifier = Modifier
                             .size(24.dp)
-                            .testTag("loadingIndicator"), // 👈 ETIQUETA NUEVA
+                            .testTag("loadingIndicator"),
                         color = Color.White
                     )
                 } else {
-                    // TODO: añadir el icono de Google aquí
-                    Text("CONTINUAR CON GOOGLE", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(R.string.login_button_google), // 👈 String Resource
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

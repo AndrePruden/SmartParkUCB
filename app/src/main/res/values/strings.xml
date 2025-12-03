@@ -2,4 +2,29 @@
     <string name="app_name">SmartPark</string>
     <string name="default_web_client_id">614561835499-d3puhqq4aa17ats7p6vug0jg1icc0rns.apps.googleusercontent.com</string>
 
+    <string name="parking_selected_label">Parqueo Seleccionado</string>
+    <string name="loading_parking">Cargando %1$s…</string>
+    <string name="closed_status">Cerrado</string>
+    <string name="free_slots">Libres</string>
+    <string name="occupied_slots">Ocupados</string>
+
+    <string name="croquis_title">Croquis: %1$s</string>
+    <string name="close_desc">Cerrar</string>
+    <string name="view_croquis_desc">Ver croquis del parqueo</string>
+    <string name="parking_map_desc">Mapa del parqueo</string>
+    <string name="login_logo_desc">Logo de Smart Park</string>
+    <string name="login_button_google">CONTINUAR CON GOOGLE</string>
+    <string name="login_canceled">Inicio de sesión cancelado</string>
+    <string name="login_error_generic">Ocurrió un error desconocido</string>
+    <string name="google_sign_in_error">Google sign in failed</string>
+
+    <string name="notifications_title">Notificaciones</string>
+    <string name="message_center_title">Centro de Mensajes</string>
+    <string name="refresh_button">Actualizar</string>
+    <string name="loading_notifications">Cargando notificaciones...</string>
+
+    <string name="status_normal">✅ Todo normal. Los parqueos están operando habitualmente.</string>
+    <string name="status_closed_t1">⚠️ AVISO: El parqueo \'Tupuraya 1\' se encuentra cerrado por mantenimiento.</string>
+    <string name="status_closed_t2">⚠️ AVISO: El parqueo \'Tupuraya 2\' se encuentra cerrado por mantenimiento.</string>
+    <string name="status_closed_all">⛔ ALERTA: Ambos parqueos están cerrados temporalmente.</string>
 </resources>

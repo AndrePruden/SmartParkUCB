@@ -1,7 +1,8 @@
 package com.ucb.smartpark.features.parking.data.datasource
 
-import android.util.Log
 import com.google.firebase.database.*
+import com.ucb.smartpark.features.parking.data.mapper.toDomain // 👈 Importante
+import com.ucb.smartpark.features.parking.data.model.ParkingSlotEntity // 👈 Importante
 import com.ucb.smartpark.features.parking.domain.model.ParkingSlot
 import com.ucb.smartpark.features.parking.domain.vo.LotId
 import com.ucb.smartpark.features.parking.domain.vo.SlotId
@@ -14,7 +15,6 @@ import kotlinx.coroutines.tasks.await
 class ParkingRemoteDataSource(
     private val db: FirebaseDatabase
 ) {
-    // Usamos .value para obtener el String real para Firebase
     private fun lotRef(lotId: LotId) = db.getReference("parking").child(lotId.value)
     private fun slotsRef(lotId: LotId) = lotRef(lotId).child("slots")
     private fun updatedAtRef(lotId: LotId) = lotRef(lotId).child("updatedAt")
@@ -27,26 +27,27 @@ class ParkingRemoteDataSource(
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = if (!snapshot.exists()) {
-                    // Generar 32 slots vacíos con VOs
                     (1..32).map {
-                        ParkingSlot(
-                            id = SlotId(it),
-                            status = SlotStatus.Free
-                        )
+                        ParkingSlotEntity(it, false).toDomain()
                     }
                 } else {
                     snapshot.children.mapNotNull { child ->
                         val idInt = child.key?.toIntOrNull() ?: return@mapNotNull null
 
+                        // Lógica "sucia" de parsing de Firebase se queda aquí para crear la Entidad
                         val occupiedInt: Int? = child.getValue(Int::class.java)
                             ?: child.getValue(Long::class.java)?.toInt()
                             ?: child.getValue(String::class.java)?.toIntOrNull()
                             ?: (if (child.getValue(Boolean::class.java) == true) 1 else 0)
 
-                        ParkingSlot(
-                            id = SlotId(idInt),
-                            status = SlotStatus(occupiedInt == 1)
-                        )
+                        val isOccupied = (occupiedInt == 1)
+
+                        // 1. Creamos el DTO/Entity (Datos puros)
+                        ParkingSlotEntity(id = idInt, isOccupied = isOccupied)
+
+                    }.map { entity ->
+                        // 2. Mappeamos a Dominio usando la función que creamos
+                        entity.toDomain()
                     }.sortedBy { it.id.value }
                 }
                 trySend(list)
@@ -60,9 +61,11 @@ class ParkingRemoteDataSource(
         awaitClose { ref.removeEventListener(listener) }
     }
 
+    // ... el resto de funciones (setSlotOccupied) ...
+    // En teoría setSlotOccupied también debería recibir un dominio y convertirlo a primitivos
+    // pero como pasas IDs y Status sueltos, está pasable.
     suspend fun setSlotOccupied(lotId: LotId, slotId: SlotId, status: SlotStatus) {
         val now = System.currentTimeMillis()
-
         val occupiedInt = if (status.value) 1 else 0
 
         slotsRef(lotId).child(slotId.value.toString()).setValue(occupiedInt).await()
