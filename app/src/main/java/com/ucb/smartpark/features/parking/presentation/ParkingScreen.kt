@@ -51,6 +51,8 @@ fun ParkingScreen(
     // Estado para Snackbar y Dialogos
     val snackbarHostState = remember { SnackbarHostState() }
     var showCroquis by remember { mutableStateOf(false) }
+
+    // Estado para el Scroll
     val scrollState = rememberScrollState()
 
     // --- DIÁLOGO DE CROQUIS ---
