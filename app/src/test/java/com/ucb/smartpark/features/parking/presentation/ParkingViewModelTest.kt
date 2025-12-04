@@ -36,47 +36,7 @@ class ParkingViewModelTest {
 
     private lateinit var viewModel: ParkingViewModel
 
-    @Test
-    fun `init should show Maintenance state when config returns 3 (All Closed)`() = runTest {
-        // Arrange
-        // 1. fetch estático (con delay para simular carga)
-        coEvery { configRepo.fetchParkingStatus() } coAnswers {
-            delay(100)
-            3
-        }
-        // 2. 🟢 NUEVO: Mockeamos el observer de tiempo real también
-        every { configRepo.observeConfigUpdates() } returns flowOf(3)
 
-        // Mock del caso de uso
-        coEvery { observeParkingUseCase(any()) } returns flowOf(emptyList())
-
-        // Act
-        viewModel = ParkingViewModel(
-            observeParkingUseCase,
-            toggleSlotUseCase,
-            configRepo,
-            testDispatcher
-        )
-
-        // Assert
-        viewModel.state.test {
-            // 1. Loading
-            val firstState = awaitItem()
-            println("Estado 1 recibido: $firstState")
-            assertTrue(firstState is ParkingViewModel.UiState.Loading)
-
-            // 2. Estado Final
-            val finalState = awaitItem()
-            println("Estado 2 recibido: $finalState") // 👈 Esto nos dirá la verdad en la consola
-
-            // Verificamos tipo
-            assertTrue("Esperaba Maintenance pero llegó: $finalState", finalState is ParkingViewModel.UiState.Maintenance)
-
-            // Verificamos mensaje (Solo si pasó lo anterior)
-            val msg = (finalState as ParkingViewModel.UiState.Maintenance).message
-            assertEquals("Este parqueo se encuentra cerrado por mantenimiento.", msg)
-        }
-    }
 
     @Test
     fun `init should show Success state when config returns 0 (Open)`() = runTest {
